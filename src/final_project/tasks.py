@@ -3,25 +3,36 @@ import pandas as pd
 import numpy as np
 
 from luigi import *
+from luigi.contrib.s3 import S3Target
 from pset_utils.luigi.dask.target import *
 
 
 class GetBadData(ExternalTask):
-    """Reads file from internet source"""
+    """Reads file from S3 or Local source"""
 
-    # Root path, as a constant
-    DATA_ROOT = 'https://assets.datacamp.com/production/repositories/377/datasets/772b2f7aeec588ada8654ff7be744c4e5cd426c4/attendance.xls'
+    # Enter root S3 or local path, as a constant
+    DATA_ROOT = 's3://hillellandman/'
 
     # Unclean file's local name as luigi parameter
     filename = Parameter('unclean.csv')
+    S3 = BoolParameter(default=True)
+    Local = BoolParameter(default=False)
 
     def output(self):
-        # Return a CSVTarget
-        return CSVTarget(self.DATA_ROOT, glob='*.csv', flag='')
+        # Output depends on S3 and Local parameters
+        if self.S3:
+            # Return S3 Target
+            return S3Target(self.DATA_ROOT)
+        elif self.Local:
+            # Return a CSVTarget
+            return CSVTarget(self.DATA_ROOT, glob='*.csv', flag='')
+        else:
+            # NotImplementedError for anything other than S3 or Local source
+            raise NotImplementedError
 
 
 class SaveCSVLocally(Task):
-    """Saves the CSVTarget Locally"""
+    """Saves the CSVTarget or S3Target Locally"""
 
     # Destination directory for unlcean file
     DATA_DEST = os.path.join('data', 'unclean')
@@ -35,16 +46,28 @@ class SaveCSVLocally(Task):
     def output(self):
         return LocalTarget(self.DATA_DEST + '\\' + self.filename)
 
-
-class DataCleaner(Task):
-    """Cleans Data"""
-
-    def requires(self):
-        return SaveCSVLocally()
-
-    def output(self):
-        return LocalTarget(path='data\\cleaned\\')
-
     def run(self):
+        with self.input().open('r') as infile, self.output().open('w') as out_file:
+            out_file.write(infile.read())
+
+
+# class DataCleaner(Task):
+#    """Cleans Data"""
+
+#    S3 = BoolParameter(GetBadData().S3)
+#    Local = BoolParameter(GetBadData().Local)
+
+#    def requires(self):
+#        if self.S3:
+#           return SaveCSVLocally()
+#        elif self.Local:
+#           return GetBadData()
+#        else:
+#           raise NotImplementedError
+
+#    def output(self):
+#        return LocalTarget(path='data\\cleaned\\')
+
+#    def run(self):
 
 

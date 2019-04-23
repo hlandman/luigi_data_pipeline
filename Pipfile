@@ -9,7 +9,10 @@ pytest-cov = "*"
 
 [packages]
 final_project = {editable = true,path = "."}
-pset-utils = {editable = true,git = "https://github.com/csci-e-29/2019sp-pset-utils-panic42station"}
+pset-utils = {git = "https://github.com/csci-e-29/2019sp-pset-utils-panic42station"}
+luigi = "*"
+pandas = "*"
+numpy = "*"
 
 [requires]
 python_version = "3.7"
