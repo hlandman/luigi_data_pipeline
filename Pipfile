@@ -13,6 +13,9 @@ pset-utils = {git = "https://github.com/csci-e-29/2019sp-pset-utils-panic42stati
 luigi = "*"
 pandas = "*"
 numpy = "*"
+boto3 = "*"
+awscli = "*"
+xlrd = "*"
 
 [requires]
 python_version = "3.7"

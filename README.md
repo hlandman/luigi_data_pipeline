@@ -32,6 +32,9 @@ to this repo as origin.
 
 ### Getting the Data
 Download any unclean dataset in CSV format. One example can be found [here](https://assets.datacamp.com/production/repositories/377/datasets/772b2f7aeec588ada8654ff7be744c4e5cd426c4/attendance.xls).
+
+(NB: The file linked above is in .xls format, be sure to convert to .csv)
+
 Store the csv in a folder called "data/" at the top of your repository.
 
 #### Optional: Get data from S3

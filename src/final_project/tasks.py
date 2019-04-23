@@ -10,11 +10,14 @@ from pset_utils.luigi.dask.target import *
 class GetBadData(ExternalTask):
     """Reads file from S3 or Local source"""
 
-    # Enter root S3 or local path, as a constant
-    DATA_ROOT = 's3://hillellandman/'
+    # Enter root S3 or local path, as a constant.
+    # Full file path for S3, just directory for local
+    DATA_ROOT = 's3://hillellandman/attendance.csv'
 
     # Unclean file's local name as luigi parameter
     filename = Parameter('unclean.csv')
+
+    # Specify if S3 or Local
     S3 = BoolParameter(default=True)
     Local = BoolParameter(default=False)
 
@@ -47,6 +50,7 @@ class SaveCSVLocally(Task):
         return LocalTarget(self.DATA_DEST + '\\' + self.filename)
 
     def run(self):
+
         with self.input().open('r') as infile, self.output().open('w') as out_file:
             out_file.write(infile.read())
 
