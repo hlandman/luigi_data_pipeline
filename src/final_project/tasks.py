@@ -8,46 +8,62 @@ from pset_utils.luigi.dask.target import *
 
 
 class GetBadData(ExternalTask):
-    """Reads file from S3 or Local source"""
+    """Reads file from S3 or Local source
+    File must have column names
+    :param
+    """
 
     # Enter root S3 or local path, as a constant.
     # Full file path for S3, just directory for local
-    DATA_ROOT = 's3://hillellandman/attendance.csv'
+    DATA_ROOT = 'data\\unclean\\'
 
     # Unclean file's local name as luigi parameter
-    filename = Parameter('unclean.csv')
+    filename = Parameter('customer_data_duped.csv')
 
-    # Specify if S3 or Local
-    S3 = BoolParameter(default=True)
-    Local = BoolParameter(default=False)
+    # Specify if "S3" or "Local"
+    source_type = Parameter(default="S3")
+
+    # Specify output type "dask" or "pandas"
+    output_type = Parameter(default="pandas")
 
     def output(self):
         # Output depends on S3 and Local parameters
-        if self.S3:
+        if self.source_type == "S3":
             # Return S3 Target
             return S3Target(self.DATA_ROOT)
-        elif self.Local:
-            # Return a CSVTarget
-            return CSVTarget(self.DATA_ROOT, glob='*.csv', flag='')
+        elif self.source_type == "Local":
+            # Returns Target type based on Dask or Pandas
+            if self.output_type == "pandas" or "dask":
+                # Returns CSVTarget
+                return CSVTarget(self.DATA_ROOT, glob='*.csv', flag='')
+            else:
+                raise NotImplementedError
         else:
             # NotImplementedError for anything other than S3 or Local source
+            print("Please use source_type 'S3' or 'Local.' Other types not implemented")
             raise NotImplementedError
 
 
 class SaveCSVLocally(Task):
-    """Saves the CSVTarget or S3Target Locally"""
+    """Saves the S3Target Locally"""
 
     # Destination directory for unlcean file
-    DATA_DEST = os.path.join('data', 'unclean')
+    DATA_DEST = 'data\\unclean\\'
 
     # Filename parameter from upstream task
     filename = GetBadData().filename
+    output_type = GetBadData().output_type
 
     def requires(self):
         return GetBadData()
 
     def output(self):
-        return LocalTarget(self.DATA_DEST + '\\' + self.filename)
+        # Returns Target type based on Dask or Pandas
+        if self.output_type == "pandas" or "dask":
+            # Returns CSVTarget
+            return CSVTarget(self.DATA_DEST, glob='*.csv', flag='')
+        else:
+            raise NotImplementedError
 
     def run(self):
 
@@ -55,23 +71,36 @@ class SaveCSVLocally(Task):
             out_file.write(infile.read())
 
 
-# class DataCleaner(Task):
-#    """Cleans Data"""
+class DataCleaner(Task):
+    """Cleans Data"""
 
-#    S3 = BoolParameter(GetBadData().S3)
-#    Local = BoolParameter(GetBadData().Local)
+    CLEAN_PATH = 'data\\cleaned\\'
+    source_type = Parameter(default="Local")
+    output_type = GetBadData().output_type
+    filename = Parameter(GetBadData().filename)
+    has_column_names = BoolParameter(default=True)
 
-#    def requires(self):
-#        if self.S3:
-#           return SaveCSVLocally()
-#        elif self.Local:
-#           return GetBadData()
-#        else:
-#           raise NotImplementedError
+    def requires(self):
+        if self.source_type == "S3":
+            return SaveCSVLocally()
+        elif self.source_type == "Local":
+            return GetBadData()
+        else:
+            raise NotImplementedError
 
-#    def output(self):
-#        return LocalTarget(path='data\\cleaned\\')
+    def output(self):
+        # Returns Target type based on Dask or Pandas
+        if self.output_type == "pandas" or "dask":
+            # Returns CSVTarget
+            return CSVTarget(path=self.CLEAN_PATH)
+        else:
+            raise NotImplementedError
 
-#    def run(self):
-
+    def run(self):
+        if self.has_column_names:
+            df = self.input().read_dask(encoding='unicode_escape')
+            print(df.head())
+            self.output().write_dask(df, compression='gzip')
+        else:
+            raise NotImplementedError
 
