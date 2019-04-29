@@ -16,6 +16,8 @@ numpy = "*"
 boto3 = "*"
 awscli = "*"
 xlrd = "*"
+dedupe = "*"
+ftfy = "*"
 
 [requires]
 python_version = "3.7"

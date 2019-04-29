@@ -1,6 +1,10 @@
 import os
 import pandas as pd
 import numpy as np
+import dask.dataframe as dd
+
+from sklearn import preprocessing
+from sklearn.preprocessing import LabelEncoder
 
 from luigi import *
 from luigi.contrib.s3 import S3Target
@@ -18,10 +22,10 @@ class GetBadData(ExternalTask):
     DATA_ROOT = 'data\\unclean\\'
 
     # Unclean file's local name as luigi parameter
-    filename = Parameter('customer_data_duped.csv')
+    filename = Parameter('small_data_duped.csv')
 
     # Specify if "S3" or "Local"
-    source_type = Parameter(default="S3")
+    source_type = Parameter(default="Local")
 
     # Specify output type "dask" or "pandas"
     output_type = Parameter(default="pandas")
@@ -74,11 +78,23 @@ class SaveCSVLocally(Task):
 class DataCleaner(Task):
     """Cleans Data"""
 
-    CLEAN_PATH = 'data\\cleaned\\'
-    source_type = Parameter(default="Local")
+    CLEAN_PATH = os.path.join('data', 'cleaned')
     output_type = GetBadData().output_type
     filename = Parameter(GetBadData().filename)
     has_column_names = BoolParameter(default=True)
+
+    # Type of source, Local or S3
+    source_type = Parameter(default="Local")
+
+    # Parse Dates - False if no date column, column name if there is
+    date_column = Parameter(default="date")
+
+    # Drop "rows," "columns," "both" or "none"
+    drop_nan = BoolParameter(default="none")
+    na_filler = Parameter(default=' ')
+
+    # Encode Categorical Columns
+    category_col = Parameter(default="category")
 
     def requires(self):
         if self.source_type == "S3":
@@ -92,15 +108,43 @@ class DataCleaner(Task):
         # Returns Target type based on Dask or Pandas
         if self.output_type == "pandas" or "dask":
             # Returns CSVTarget
-            return CSVTarget(path=self.CLEAN_PATH)
+            return LocalTarget(path=self.CLEAN_PATH)
         else:
             raise NotImplementedError
 
     def run(self):
         if self.has_column_names:
-            df = self.input().read_dask(encoding='unicode_escape')
+            # Read in the CSV Target
+            df = self.input().read_dask(parse_dates=[self.date_column], encoding='unicode_escape')
+
+            df = df.compute()
+
+            # Fill or drop NaN based on parameter
+            if self.drop_nan == "rows":
+                df.dropna()
+            elif self.drop_nan == "columns":
+                df.dropna(axis=1)
+            elif self.drop_nan == "both":
+                df.dropna()
+                df.dropna(axis=1)
+            else:
+                df.fillna(self.na_filler)
+
+            # Encode labels
+            l_encoder = preprocessing.LabelEncoder()
+            df[self.category_col] = l_encoder.fit_transform(df[self.category_col])
+
             print(df.head())
-            self.output().write_dask(df, compression='gzip')
+
+            # Output to CSV file in "Cleaned" folder
+            outdir = self.CLEAN_PATH
+            if not os.path.exists(outdir):
+                os.mkdir(outdir)
+            df.to_csv(os.path.join(outdir, str(GetBadData().filename)))
+
         else:
             raise NotImplementedError
+
+
+# class Visualize(Task):
 

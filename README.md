@@ -26,9 +26,15 @@
 
 ## Before you begin
 
-### Initial Setup
+### Cookiecutter
 Begin with your cookiecutter template as usual, and manaully merge and link
 to this repo as origin.
+
+### Environment
+Pipenv install packages that we will use:
+```bash
+$ pipenv install luigi 
+```
 
 ### Getting the Data
 Download any unclean dataset in CSV format. One example can be found [here](https://assets.datacamp.com/production/repositories/377/datasets/772b2f7aeec588ada8654ff7be744c4e5cd426c4/attendance.xls).
