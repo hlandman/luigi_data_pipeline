@@ -4,7 +4,7 @@ import numpy as np
 import dask.dataframe as dd
 
 from sklearn import preprocessing
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 
 from luigi import *
 from luigi.contrib.s3 import S3Target
@@ -76,7 +76,15 @@ class SaveCSVLocally(Task):
 
 
 class DataCleaner(Task):
-    """Cleans Data"""
+    """Cleans and Wrangles Data
+        Luigi Parameters:
+        source_type: string "Local" or "S3"
+        date_column: string "False" if none, else string date column name
+        drop_nan: string "rows," "columns," "both" or "none" for what to drop if there are na's
+        na_filler: string what to fill na's with
+        category_col: string "none" or name of categorical column for encoding variables
+        dummy_col: string "none" or name of dummy variable column
+    """
 
     CLEAN_PATH = os.path.join('data', 'cleaned')
     output_type = GetBadData().output_type
@@ -93,8 +101,12 @@ class DataCleaner(Task):
     drop_nan = BoolParameter(default="none")
     na_filler = Parameter(default=' ')
 
-    # Encode Categorical Columns
+    # Encode Categorical Columns - "none" or column name
+    # Multiple columns??
     category_col = Parameter(default="category")
+
+    # Dummy Columns - "none" or column name
+    dummy_col = Parameter(default='dummy')
 
     def requires(self):
         if self.source_type == "S3":
@@ -107,15 +119,19 @@ class DataCleaner(Task):
     def output(self):
         # Returns Target type based on Dask or Pandas
         if self.output_type == "pandas" or "dask":
-            # Returns CSVTarget
+            # Returns Target
             return LocalTarget(path=self.CLEAN_PATH)
         else:
             raise NotImplementedError
 
     def run(self):
         if self.has_column_names:
-            # Read in the CSV Target
-            df = self.input().read_dask(parse_dates=[self.date_column], encoding='unicode_escape')
+            # Deal with nonstandard missing values
+            missing_values = ["n/a", "na", "--"]
+
+            # Read in the Target
+            df = self.input().read_dask(parse_dates=[self.date_column], na_values=missing_values,
+                                        encoding='unicode_escape')
 
             df = df.compute()
 
@@ -131,8 +147,15 @@ class DataCleaner(Task):
                 df.fillna(self.na_filler)
 
             # Encode labels
-            l_encoder = preprocessing.LabelEncoder()
-            df[self.category_col] = l_encoder.fit_transform(df[self.category_col])
+            if self.category_col != "none":
+                l_encoder = preprocessing.LabelEncoder()
+                df[self.category_col] = l_encoder.fit_transform(df[self.category_col])
+
+            # Dummy Variables
+            if self.dummy_col != "none":
+                # hot_encoder = OneHotEncoder(handle_unknown='ignore')
+
+                df[self.dummy_col] = pd.get_dummies(df[self.dummy_col])
 
             print(df.head())
 
@@ -146,5 +169,16 @@ class DataCleaner(Task):
             raise NotImplementedError
 
 
-# class Visualize(Task):
+class Visualize(Task):
+    """Visualizes Data - Customizably"""
+    VISUAL_PATH = os.path.join('data', 'visualized')
+
+    def requires(self):
+        return DataCleaner()
+
+    def output(self):
+        # Returns Local Target
+        return LocalTarget(path=self.VISUAL_PATH)
+
+    def run(self):
 
