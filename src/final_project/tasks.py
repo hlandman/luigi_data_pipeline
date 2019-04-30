@@ -1,12 +1,9 @@
 import os
 import pandas as pd
-import numpy as np
-import dask.dataframe as dd
-import matplotlib.pyplot as plt
 import seaborn as sns
+import matplotlib.pyplot as plt
 
 from sklearn import preprocessing
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 
 from luigi import *
 from luigi.contrib.s3 import S3Target
@@ -56,7 +53,6 @@ class SaveCSVLocally(Task):
 
     # Filename parameter from upstream task
     filename = GetBadData().filename
-    output_type = GetBadData().output_type
 
     def requires(self):
         return GetBadData()
@@ -233,10 +229,12 @@ class DataVisualizer(Task):
     func = Parameter(default="lm")
 
     # Optional - specify "kind": for catplot kind
+    # Options fot cat are: “point”, “bar”, “strip”, “swarm”, “box”, “violin”, or “boxen”.
     kind = Parameter(default="point")
 
     # Specify "x" and "y" variables as dict
-    xyvars = DictParameter()
+    # For Facet, specify "z" that you want to Facet
+    xyvars = DictParameter(default={"x": "x", "y": "y"})
 
     def requires(self):
         if self.encoder:
@@ -254,14 +252,37 @@ class DataVisualizer(Task):
 
         # If FacetGrid parameter is specified
         if self.func == "facet":
-            g = sns.FacetGrid(df, row=self.xyvars["x"], col=self.xyvars["y"], margin_titles=True)
-            g.map(self.kind, self.xyvars["y"], hist=False, rug=False)
+            g = sns.FacetGrid(df, col=self.xyvars["facet"], margin_titles=True)
+            if self.kind == "scatter":
+                g.map(plt.scatter, self.xyvars["x"], self.xyvars["y"])
+            elif self.kind == "bar":
+                g.map(sns.barplot, self.xyvars["x"], self.xyvars["y"])
+            elif self.kind == "hist":
+                g.map(plt.hist, self.xyvars["x"])
+            elif self.kind == "point":
+                g.map(sns.pointplot, self.xyvars["x"], self.xyvars["y"])
+            elif self.kind == "dist":
+                g.map(sns.distplot, self.xyvars["x"], self.xyvars["y"])
+            else:
+                print("Please use one of kind 'scatter,' 'bar,' 'hist,' 'point' or 'dist'"
+                      "Others not implemented.")
 
         # If PairGrid parameter is specified
         elif self.func == "pair":
             g = sns.PairGrid(df, diag_sharey=False)
-            g.map(self.kind)
-
+            if self.kind == "scatter":
+                g.map(plt.scatter)
+            elif self.kind == "bar":
+                g.map(sns.barplot)
+            elif self.kind == "hist":
+                g.map(plt.hist)
+            elif self.kind == "point":
+                g.map(sns.pointplot)
+            elif self.kind == "dist":
+                g.map(sns.distplot)
+            else:
+                print("Please use one of kind 'scatter,' 'bar,' 'hist,' 'point' or 'dist'"
+                      "Others not implemented.")
         # If lmplot is specified
         elif self.func == "lm":
             # Ensure 'x' and 'y' vars are specified in "xyvar" parameter Dict
