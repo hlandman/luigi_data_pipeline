@@ -18,6 +18,7 @@ awscli = "*"
 xlrd = "*"
 dedupe = "*"
 ftfy = "*"
+seaborn = "*"
 
 [requires]
 python_version = "3.7"

@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import dask.dataframe as dd
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 from sklearn import preprocessing
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
@@ -28,21 +29,15 @@ class GetBadData(ExternalTask):
     # Specify if "S3" or "Local"
     source_type = Parameter(default="Local")
 
-    # Specify output type "dask" or "pandas"
-    output_type = Parameter(default="pandas")
-
     def output(self):
         # Output depends on S3 and Local parameters
         if self.source_type == "S3":
             # Return S3 Target
             return S3Target(self.DATA_ROOT)
         elif self.source_type == "Local":
-            # Returns Target type based on Dask or Pandas
-            if self.output_type == "pandas" or "dask":
-                # Returns CSVTarget
-                return CSVTarget(self.DATA_ROOT, glob='*.csv', flag='')
-            else:
-                raise NotImplementedError
+            # Returns CSVTarget
+            return CSVTarget(self.DATA_ROOT, glob='*.csv', flag='')
+
         else:
             # NotImplementedError for anything other than S3 or Local source
             print("Please use source_type 'S3' or 'Local.' Other types not implemented")
@@ -50,7 +45,9 @@ class GetBadData(ExternalTask):
 
 
 class SaveCSVLocally(Task):
-    """Saves the S3Target Locally"""
+    """Saves the S3Target Locally
+    Only used when pulling from S3.
+    """
 
     # Destination directory for unlcean file
     DATA_DEST = 'data\\unclean\\'
@@ -63,12 +60,8 @@ class SaveCSVLocally(Task):
         return GetBadData()
 
     def output(self):
-        # Returns Target type based on Dask or Pandas
-        if self.output_type == "pandas" or "dask":
-            # Returns CSVTarget
-            return CSVTarget(self.DATA_DEST, glob='*.csv', flag='')
-        else:
-            raise NotImplementedError
+        # Returns CSVTarget
+        return CSVTarget(self.DATA_DEST, glob='*.csv', flag='')
 
     def run(self):
 
@@ -88,7 +81,6 @@ class DataCleaner(Task):
     """
 
     CLEAN_PATH = os.path.join('data', 'cleaned\\')
-    output_type = GetBadData().output_type
     filename = Parameter(GetBadData().filename)
     has_column_names = BoolParameter(default=True)
 
@@ -160,17 +152,18 @@ class DataCleaner(Task):
 
 
 class DataEncoder(Task):
-    """Encodes variables"""
+    """Encodes variables
+    Functions if encoder Param is specified in DataVisualizer.
+    In command line call, need to specify columns to encode as a dict.
+    Example: --cols '{"cat": "some_categorical", "dum": "some_dummy"}'
+    """
+
     ENCODED_PATH = os.path.join('data', 'encoded\\')
 
     filename = Parameter(GetBadData().filename)
 
     # Encode Categorical Columns - "none" or column name
-    # Multiple columns??
-    category_col = Parameter("quality")
-
-    # Dummy Columns - "none" or column name
-    dummy_col = Parameter("good")
+    cols = DictParameter(default={"cat": "none", "dum": "none"})
 
     def requires(self):
         return DataCleaner()
@@ -183,19 +176,17 @@ class DataEncoder(Task):
         df = pd.read_csv(self.input().open('r'))
 
         # Encode labels
-        if self.category_col != "none":
-            l_encoder = preprocessing.LabelEncoder()
-            df[self.category_col] = l_encoder.fit_transform(df[self.category_col])
+        if "cat" in self.cols:
+            if self.cols["cat"] != "none":
+                l_encoder = preprocessing.LabelEncoder()
+                df[self.cols["cat"]] = l_encoder.fit_transform(df[self.cols["cat"]])
 
         # Dummy Variables
-        if self.dummy_col != "none":
-            # hot_encoder = OneHotEncoder(handle_unknown='ignore')
+        if "dum" in self.cols:
+            if self.cols["dum"] != "none":
+                df[self.cols["dum"]] = pd.get_dummies(df[self.cols["dum"]])
 
-            df[self.dummy_col] = pd.get_dummies(df[self.dummy_col])
-
-        print(df.head())
-
-        # Output to CSV file in "Cleaned" folder
+        # Output to CSV file in "encoded" folder
         outdir = self.ENCODED_PATH
         if not os.path.exists(outdir):
             os.mkdir(outdir)
@@ -203,24 +194,36 @@ class DataEncoder(Task):
 
 
 class DataVisualizer(Task):
-    """Visualizes Data - Customizably"""
+    """Visualizes Data - Customizably
+        figure_name
+        encoder
+
+        chart_type
+        chart_title
+
+    """
     VISUAL_PATH = os.path.join('data', 'visualized\\')
 
     figure_name = Parameter('figure.pdf')
 
     # Do you need Encoding?
-    encoder = BoolParameter(default=True)
+    encoder = BoolParameter()
 
-    # Specify what type of chart - "scatter," "line," "hist," "bar"
-    chart_type = Parameter(default="scatter")
-    chart_title = Parameter(default="My Chart")
+    # Specify "func": "lm" for lmplot and "cat" for catplot
+    func = Parameter(default="lm")
+    # Specify "x" and "y" variables as dict
+    xyvars = DictParameter()
+    # Optional - specify "kind": for catplot kind
+    specs = DictParameter(default={"func": "cat", "x": "sulph_cat", "y": "quality", "kind": "point"})
 
-    # Choose column name for bar chart
-    bar_col = Parameter(default="none")
+    # Features: FacetGrid or PairGrid
+    facet_grid = BoolParameter()
+    pair_grid = BoolParameter()
 
-    # Pass in column name for x and y axes
-    x_axis = Parameter(default="sulphates")
-    y_axis = Parameter(default="quality")
+    # "plt.hist" "plt.scatter" "sns.barplot" "sns.distplot" "sns.pointplot"
+    facet_type = Parameter(default="scatter")
+    # for facet grid, is it hist?
+    facet_hist = BoolParameter()
 
     def requires(self):
         if self.encoder:
@@ -233,23 +236,43 @@ class DataVisualizer(Task):
         return LocalTarget(path=self.VISUAL_PATH + str(self.figure_name))
 
     def run(self):
+        # Read in data frame
         df = pd.read_csv(self.input().open('r'))
 
-        if self.chart_type == "scatter":
-            chart = df.plot.scatter(x=self.x_axis, y=self.y_axis, title=self.chart_title)
-        elif self.chart_type == "line":
-            chart = df.plot.line(title=self.chart_title)
-        elif self.chart_type == "hist":
-            chart = df.plot.hist(subplots=True, layout=(2, 2), figsize=(10, 10), bins=20)
-        # elif self.chart_type == "bar":
+        # If FacetGrid parameter is specified
+        if self.facet_grid:
+            g = sns.FacetGrid(df, row=self.specs["x"], col=self.specs["y"], margin_titles=True)
+            g.map(self.specs["kind"], self.specs["y"], hist=self.facet_hist, rug=self.specs["rug"])
+
+        # If PairGrid parameter is specified
+        # elif self.pair_grid:
+        #    g = sns.PairGrid(df, diag_sharey=False)
+        #    g.map( # something)
+
+        # If lmplot is specified
+        elif self.specs["func"] == "lm":
+            # Ensure 'x' and 'y' vars are specified in "xyvar" parameter Dict
+            if "x" and "y" in self.xyvars:
+                g = sns.lmplot(x=self.specs["x"], y=self.specs["y"], data=df)
+            else:
+                print("Please provide X and Y variables for the 'xyvars' Parameter in the form of a Dict. "
+                      "Example: --xyvars'{'x': 'some_x', 'y': 'some_y'}'")
+                raise NotImplementedError
+
+        # If catplot is specified
+        elif self.specs["func"] == "cat":
+            # Ensure 'x' and 'y' vars are specified in "xyvar" parameter Dict
+            if "x" and "y" in self.xyvars:
+                g = sns.catplot(x=self.specs["x"], y=self.specs["y"], data=df, kind=self.specs["kind"])
+            else:
+                print("Please provide X and Y variables for the 'xyvars' Parameter in the form of a Dict. "
+                      "Example: --xyvars'{'x': 'some_x', 'y': 'some_y'}'")
+                raise NotImplementedError
         else:
-            chart = df[self.bar_col].value_counts().sort_index().plot.bar()
+            raise NotImplementedError
 
-        fig = chart.get_figure()
-
-        # Output to CSV file in "Cleaned" folder
+        # Output to PDF file in "visualized" folder
         outdir = self.VISUAL_PATH
         if not os.path.exists(outdir):
             os.mkdir(outdir)
-        fig.savefig(os.path.join(outdir, str(self.figure_name)))
-        # df.to_csv(os.path.join(outdir, str(self.figure_name)))
+        g.savefig(os.path.join(outdir, str(self.figure_name)))
