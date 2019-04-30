@@ -145,7 +145,9 @@ $ luigi --module final_project.tasks DataVisualizer --local-scheduler --func lm 
 * FacetGrid with kind "scatter"
 ```python
 $ luigi --module final_project.tasks DataVisualizer --local-scheduler --func facet --kind scatter --xyvars '{"x": "x_variable", "y":"y_variable", "facet":"facet_variable"}'
-```
+```  
+
+***  
 
 ## Parameter Table
 __GetBadData__
