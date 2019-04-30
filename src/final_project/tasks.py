@@ -11,67 +11,26 @@ from pset_utils.luigi.dask.target import *
 
 
 class GetBadData(ExternalTask):
-    """Reads file from S3 or Local source
+    """Reads file from Local source
     File must be CSV and have column indexes.
     Store local files in data/unclean at top of repository.
     Luigi Parameters (optional):
         filename: Name of output file as string
-        source_type: "S3" or "Local"
     """
-
-    # Enter root S3 or local path, as a constant.
-    # Full file path for S3, just directory for local
+    # Directory for local file
     DATA_ROOT = 'data\\unclean\\'
 
     # Unclean file's local name as luigi parameter
     filename = Parameter(default='clean_file.csv')
 
-    # Specify if "S3" or "Local"
-    source_type = Parameter(default="Local")
-
-    def output(self):
-        # Output depends on S3 and Local parameters
-        if self.source_type == "S3":
-            # Return S3 Target
-            return S3Target(self.DATA_ROOT)
-        elif self.source_type == "Local":
-            # Returns CSVTarget
-            return CSVTarget(self.DATA_ROOT, glob='*.csv', flag='')
-        else:
-            # NotImplementedError for anything other than S3 or Local source
-            print("Please use source_type 'S3' or 'Local.' Other types not implemented")
-            raise NotImplementedError
-
-
-class SaveCSVLocally(Task):
-    """Saves the S3Target Locally
-    Only used when pulling from S3.
-    """
-
-    # Destination directory for unlcean file
-    DATA_DEST = 'data\\unclean\\'
-
-    # Filename parameter from upstream task
-    filename = GetBadData().filename
-
-    def requires(self):
-        return GetBadData()
-
     def output(self):
         # Returns CSVTarget
-        return CSVTarget(self.DATA_DEST, glob='*.csv', flag='')
-
-    def run(self):
-
-        with self.input().open('r') as infile, self.output().open('w') as out_file:
-            out_file.write(infile.read())
+        return CSVTarget(self.DATA_ROOT, glob='*.csv', flag='')
 
 
 class DataCleaner(Task):
     """Cleans Data
     Luigi Parameters (optional):
-        Source
-            source_type: string default="Local", or "S3"
         Date Parsing
             date_data: bool default=False, include --date_data in call to parse dates
             date_column: string default="date", or name of date column
@@ -103,14 +62,7 @@ class DataCleaner(Task):
     na_filler = Parameter(default=' ')
 
     def requires(self):
-        # Uses SaveCSVLocally as upstream if using S3 source
-        if self.source_type == "S3":
-            return SaveCSVLocally()
-        # Uses GetBadData as upstream if using Local source
-        elif self.source_type == "Local":
-            return GetBadData()
-        else:
-            raise NotImplementedError
+        return GetBadData()
 
     def output(self):
         # Returns Local Target

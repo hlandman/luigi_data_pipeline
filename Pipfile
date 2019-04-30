@@ -16,8 +16,6 @@ numpy = "*"
 boto3 = "*"
 awscli = "*"
 xlrd = "*"
-dedupe = "*"
-ftfy = "*"
 seaborn = "*"
 
 [requires]
