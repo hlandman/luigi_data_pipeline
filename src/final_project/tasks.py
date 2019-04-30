@@ -15,8 +15,11 @@ from pset_utils.luigi.dask.target import *
 
 class GetBadData(ExternalTask):
     """Reads file from S3 or Local source
-    File must have column names
-    :param
+    File must be CSV and have column indexes.
+    Store local files in data/unclean at top of repository.
+    Luigi Parameters (optional):
+        filename: Name of output file as string
+        source_type: "S3" or "Local"
     """
 
     # Enter root S3 or local path, as a constant.
@@ -24,7 +27,7 @@ class GetBadData(ExternalTask):
     DATA_ROOT = 'data\\unclean\\'
 
     # Unclean file's local name as luigi parameter
-    filename = Parameter('winequality-red.csv')
+    filename = Parameter(default='clean_file.csv')
 
     # Specify if "S3" or "Local"
     source_type = Parameter(default="Local")
@@ -37,7 +40,6 @@ class GetBadData(ExternalTask):
         elif self.source_type == "Local":
             # Returns CSVTarget
             return CSVTarget(self.DATA_ROOT, glob='*.csv', flag='')
-
         else:
             # NotImplementedError for anything other than S3 or Local source
             print("Please use source_type 'S3' or 'Local.' Other types not implemented")
@@ -70,46 +72,53 @@ class SaveCSVLocally(Task):
 
 
 class DataCleaner(Task):
-    """Cleans and Wrangles Data
-        Luigi Parameters:
-        source_type: string "Local" or "S3"
-        date_column: string "False" if none, else string date column name
-        drop_nan: string "rows," "columns," "both" or "none" for what to drop if there are na's
-        na_filler: string what to fill na's with
-        category_col: string "none" or name of categorical column for encoding variables
-        dummy_col: string "none" or name of dummy variable column
+    """Cleans Data
+    Luigi Parameters (optional):
+        Source
+            source_type: string default="Local", or "S3"
+        Date Parsing
+            date_data: bool default=False, include --date_data in call to parse dates
+            date_column: string default="date", or name of date column
+        Missing Values
+            drop_nan: string default="none", or "rows," "columns," or "both" for what to drop if there are na's
+            na_filler: string default=' ', or what to fill na's with
     """
 
+    # Folder for clean data
     CLEAN_PATH = os.path.join('data', 'cleaned\\')
+
+    # Inherits filename from GetBadData
     filename = Parameter(GetBadData().filename)
+
+    # Parameter for having indexes - False will return NotImplementedError
     has_column_names = BoolParameter(default=True)
 
     # Type of source, Local or S3
     source_type = Parameter(default="Local")
 
-    # Parse Dates - False if no date column, column name if there is
-    date_data = BoolParameter(default=False)
+    # Parse Dates - True if there is a date column to parse
+    date_data = BoolParameter()
+    # Name of date column"
     date_column = Parameter(default="date")
 
     # Drop "rows," "columns," "both" or "none"
     drop_nan = Parameter(default="none")
+    # Fill na - what to fill with
     na_filler = Parameter(default=' ')
 
     def requires(self):
+        # Uses SaveCSVLocally as upstream if using S3 source
         if self.source_type == "S3":
             return SaveCSVLocally()
+        # Uses GetBadData as upstream if using Local source
         elif self.source_type == "Local":
             return GetBadData()
         else:
             raise NotImplementedError
 
     def output(self):
-        # Returns Target type based on Dask or Pandas
-        if self.output_type == "pandas" or "dask":
-            # Returns Target
-            return LocalTarget(path=str(self.CLEAN_PATH) + str(self.filename))
-        else:
-            raise NotImplementedError
+        # Returns Local Target
+        return LocalTarget(path=str(self.CLEAN_PATH) + str(self.filename))
 
     def run(self):
         if self.has_column_names:
@@ -117,11 +126,11 @@ class DataCleaner(Task):
             missing_values = ["n/a", "na", "--"]
 
             if self.date_data:
-                # Read in the Target
+                # Read in the Target, parsing dates
                 df = self.input().read_dask(parse_dates=[self.date_column], na_values=missing_values,
                                             encoding='unicode_escape')
             else:
-                # Read in the Target
+                # Read in the Target without parsing dates
                 df = self.input().read_dask(na_values=missing_values, encoding='unicode_escape')
 
             df = df.compute()
@@ -137,51 +146,53 @@ class DataCleaner(Task):
             else:
                 df.fillna(self.na_filler)
 
-            print(df.head())
-
             # Output to CSV file in "Cleaned" folder
             outdir = self.CLEAN_PATH
             if not os.path.exists(outdir):
                 os.mkdir(outdir)
             df.to_csv(os.path.join(outdir, str(GetBadData().filename)))
 
-            # self.output().to_csv(df, compression='gzip')
-
         else:
+            # Raises NotImplementedError if has_column_names returns False
+            print("Please use data with column indexes. Index-less data not implemented.")
             raise NotImplementedError
 
 
 class DataEncoder(Task):
     """Encodes variables
     Functions if encoder Param is specified in DataVisualizer.
-    In command line call, need to specify columns to encode as a dict.
-    Example: --cols '{"cat": "some_categorical", "dum": "some_dummy"}'
+    Luigi Parameter (required):
+        cols: In command line call, need to specify as dict which columns to encode.
+            Example: --cols '{"cat": "some_categorical", "dum": "some_dummy"}'
     """
 
+    # Path to encoded file
     ENCODED_PATH = os.path.join('data', 'encoded\\')
 
+    # Inherit filename from GetBadData
     filename = Parameter(GetBadData().filename)
 
-    # Encode Categorical Columns - "none" or column name
+    # DictParameter for which columns to encode
     cols = DictParameter(default={"cat": "none", "dum": "none"})
 
     def requires(self):
         return DataCleaner()
 
     def output(self):
-        # Returns CSV Target
+        # Returns LocalTarget
         return LocalTarget(path=self.ENCODED_PATH + str(self.filename))
 
     def run(self):
+        # Read in Target
         df = pd.read_csv(self.input().open('r'))
 
-        # Encode labels
+        # Encode categorical columns
         if "cat" in self.cols:
             if self.cols["cat"] != "none":
                 l_encoder = preprocessing.LabelEncoder()
                 df[self.cols["cat"]] = l_encoder.fit_transform(df[self.cols["cat"]])
 
-        # Dummy Variables
+        # Encode Dummy Variables
         if "dum" in self.cols:
             if self.cols["dum"] != "none":
                 df[self.cols["dum"]] = pd.get_dummies(df[self.cols["dum"]])
@@ -194,36 +205,38 @@ class DataEncoder(Task):
 
 
 class DataVisualizer(Task):
-    """Visualizes Data - Customizably
-        figure_name
-        encoder
+    """Visualizes Data in a Customizable Way
+    Luigi Parameters:
+        Data (optional)
+            figure_name: string default='figure.pdf', or figure output name
+            encoder: bool default=False, include if you need to encode before visualizing
 
-        chart_type
-        chart_title
+        Chart (optional)
+            func: string default="lm" for lmplot, or "cat" for catplot, "facet" for FacetGrid, "pair" for PairGrid
+            kind: string default="point," or any catplot kind
 
+        Chart (required)
+            xyvars: In command line call, need to specify as dict which x and y variables to plot.
+                Example: --xyvars'{'x': 'some_x', 'y': 'some_y'}'
     """
+
+    # Path to visual figure
     VISUAL_PATH = os.path.join('data', 'visualized\\')
 
-    figure_name = Parameter('figure.pdf')
+    # Figure file name parameter
+    figure_name = Parameter(default='figure.pdf')
 
     # Do you need Encoding?
     encoder = BoolParameter()
 
-    # Specify "func": "lm" for lmplot and "cat" for catplot
+    # Specify "func": "lm" for lmplot, "cat" for catplot, "facet" for FacetGrid, "pair" for PairGrid
     func = Parameter(default="lm")
+
+    # Optional - specify "kind": for catplot kind
+    kind = Parameter(default="point")
+
     # Specify "x" and "y" variables as dict
     xyvars = DictParameter()
-    # Optional - specify "kind": for catplot kind
-    specs = DictParameter(default={"func": "cat", "x": "sulph_cat", "y": "quality", "kind": "point"})
-
-    # Features: FacetGrid or PairGrid
-    facet_grid = BoolParameter()
-    pair_grid = BoolParameter()
-
-    # "plt.hist" "plt.scatter" "sns.barplot" "sns.distplot" "sns.pointplot"
-    facet_type = Parameter(default="scatter")
-    # for facet grid, is it hist?
-    facet_hist = BoolParameter()
 
     def requires(self):
         if self.encoder:
@@ -240,30 +253,30 @@ class DataVisualizer(Task):
         df = pd.read_csv(self.input().open('r'))
 
         # If FacetGrid parameter is specified
-        if self.facet_grid:
-            g = sns.FacetGrid(df, row=self.specs["x"], col=self.specs["y"], margin_titles=True)
-            g.map(self.specs["kind"], self.specs["y"], hist=self.facet_hist, rug=self.specs["rug"])
+        if self.func == "facet":
+            g = sns.FacetGrid(df, row=self.xyvars["x"], col=self.xyvars["y"], margin_titles=True)
+            g.map(self.kind, self.xyvars["y"], hist=False, rug=False)
 
         # If PairGrid parameter is specified
-        # elif self.pair_grid:
-        #    g = sns.PairGrid(df, diag_sharey=False)
-        #    g.map( # something)
+        elif self.func == "pair":
+            g = sns.PairGrid(df, diag_sharey=False)
+            g.map(self.kind)
 
         # If lmplot is specified
-        elif self.specs["func"] == "lm":
+        elif self.func == "lm":
             # Ensure 'x' and 'y' vars are specified in "xyvar" parameter Dict
             if "x" and "y" in self.xyvars:
-                g = sns.lmplot(x=self.specs["x"], y=self.specs["y"], data=df)
+                g = sns.lmplot(x=self.xyvars["x"], y=self.xyvars["y"], data=df)
             else:
                 print("Please provide X and Y variables for the 'xyvars' Parameter in the form of a Dict. "
                       "Example: --xyvars'{'x': 'some_x', 'y': 'some_y'}'")
                 raise NotImplementedError
 
         # If catplot is specified
-        elif self.specs["func"] == "cat":
+        elif self.func == "cat":
             # Ensure 'x' and 'y' vars are specified in "xyvar" parameter Dict
             if "x" and "y" in self.xyvars:
-                g = sns.catplot(x=self.specs["x"], y=self.specs["y"], data=df, kind=self.specs["kind"])
+                g = sns.catplot(x=self.xyvars["x"], y=self.xyvars["y"], data=df, kind=self.kind)
             else:
                 print("Please provide X and Y variables for the 'xyvars' Parameter in the form of a Dict. "
                       "Example: --xyvars'{'x': 'some_x', 'y': 'some_y'}'")
