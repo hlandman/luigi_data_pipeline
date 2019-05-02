@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "0588c7b191ac3bd61071f18756516daa03475cada3999db087a3a220e5ed6f2a"
+            "sha256": "686775668d60d51cc79f9b35c8a12677f3e9f4c68e34b4abb9d41f103c5e0f26"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -39,6 +39,13 @@
             ],
             "version": "==1.12.140"
         },
+        "cloudpickle": {
+            "hashes": [
+                "sha256:3ea6fd33b7521855a97819b3d645f92d51c8763d3ab5df35197cd8e96c19ba6f",
+                "sha256:70b492d5e06b779707c00b334311abcd4ac144c56910068aeeda0079e6244ef0"
+            ],
+            "version": "==0.8.1"
+        },
         "colorama": {
             "hashes": [
                 "sha256:463f8483208e921368c9f306094eb6f725c6ca42b0f97e313cb5d5512459feda",
@@ -54,6 +61,9 @@
             "version": "==0.10.0"
         },
         "dask": {
+            "extras": [
+                "dataframe"
+            ],
             "hashes": [
                 "sha256:34c40c5d3a7acef08e6b819a30b01a1a83bfb4a369884d906c29c834619a84d4",
                 "sha256:790992db4f73c9b3e0c1a0c36f61793aa71cd4454bb78507fa171c86cba16f03"
@@ -112,6 +122,12 @@
                 "sha256:f790f8b3dff3d53453de6a7b7ddd173d2e020fb160baff578d578065b108a05f"
             ],
             "version": "==1.1.0"
+        },
+        "locket": {
+            "hashes": [
+                "sha256:1fee63c1153db602b50154684f5725564e63a0f6d09366a1cb13dffcec179fb4"
+            ],
+            "version": "==0.2.0"
         },
         "lockfile": {
             "hashes": [
@@ -199,6 +215,13 @@
             ],
             "index": "pypi",
             "version": "==0.24.2"
+        },
+        "partd": {
+            "hashes": [
+                "sha256:33722a228ebcd1fa6f44b1631bdd4cff056376f89eb826d7d880b35b637bcfba",
+                "sha256:826e8034dc1503005f86b67c8542bc8c71cc35b33741b413e82d25a09cc26ad9"
+            ],
+            "version": "==0.3.10"
         },
         "pset-utils": {
             "git": "https://github.com/csci-e-29/2019sp-pset-utils-panic42station",
@@ -357,6 +380,12 @@
             ],
             "index": "pypi",
             "version": "==0.0"
+        },
+        "toolz": {
+            "hashes": [
+                "sha256:929f0a7ea7f61c178bd951bdae93920515d3fbdbafc8e6caf82d752b9b3b31c9"
+            ],
+            "version": "==0.9.0"
         },
         "tornado": {
             "hashes": [

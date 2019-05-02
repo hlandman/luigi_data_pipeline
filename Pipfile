@@ -18,7 +18,7 @@ awscli = "*"
 xlrd = "*"
 seaborn = "*"
 sklearn = "*"
-dask = "*"
+dask = {extras = ["dataframe"],version = "*"}
 
 [requires]
 python_version = "3.7"
