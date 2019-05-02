@@ -6,8 +6,7 @@ import matplotlib.pyplot as plt
 from sklearn import preprocessing
 
 from luigi import *
-from luigi.contrib.s3 import S3Target
-from pset_utils.luigi.dask.target import *
+from pset_utils.luigi.dask.target import CSVTarget
 
 
 class GetBadData(ExternalTask):
