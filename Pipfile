@@ -18,6 +18,7 @@ awscli = "*"
 xlrd = "*"
 seaborn = "*"
 sklearn = "*"
+dask = "*"
 
 [requires]
 python_version = "3.7"
