@@ -19,6 +19,9 @@ xlrd = "*"
 seaborn = "*"
 sklearn = "*"
 dask = {extras = ["dataframe"],version = "*"}
+llvmlite = "*"
+numba = "*"
+fastparquet = "*"
 
 [requires]
 python_version = "3.7"
