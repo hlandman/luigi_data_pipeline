@@ -17,6 +17,7 @@ boto3 = "*"
 awscli = "*"
 xlrd = "*"
 seaborn = "*"
+sklearn = "*"
 
 [requires]
 python_version = "3.7"
