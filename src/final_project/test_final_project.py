@@ -15,11 +15,11 @@ class VisualTester(TestCase):
 
         class GetBadTest(GetBadData):
             # Directory for local file
-            DATA_ROOT = "testdata\\"
+            DATA_ROOT = "testdata/"
 
         class CleanerTest(DataCleaner):
             # Directory for clean test file
-            CLEAN_PATH = "testdata\\cleaned\\"
+            CLEAN_PATH = "testdata/cleaned/"
 
             filename = Parameter(GetBadTest().filename)
 
@@ -30,7 +30,7 @@ class VisualTester(TestCase):
 
         class EncoderTest(DataEncoder):
             # Directory for encoded test file
-            ENCODED_PATH = "testdata\\encoded\\"
+            ENCODED_PATH = "testdata/encoded/"
 
             filename = Parameter(CleanerTest().filename)
 
@@ -41,7 +41,7 @@ class VisualTester(TestCase):
 
         class VisualizerTest(DataVisualizer):
             # Directory for visual test file
-            VISUAL_PATH = "testdata\\visualized\\"
+            VISUAL_PATH = "testdata/visualized/"
 
             def requires(self):
                 return EncoderTest()

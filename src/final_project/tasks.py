@@ -17,7 +17,7 @@ class GetBadData(ExternalTask):
         filename: Name of output file as string
     """
     # Directory for local file
-    DATA_ROOT = 'data\\unclean\\'
+    DATA_ROOT = 'data/unclean/'
 
     # Unclean file's local name as luigi parameter
     filename = Parameter(default='clean_file.csv')
@@ -39,7 +39,7 @@ class DataCleaner(Task):
     """
 
     # Folder for clean data
-    CLEAN_PATH = os.path.join('data', 'cleaned\\')
+    CLEAN_PATH = os.path.join('data', 'cleaned/')
 
     # Inherits filename from GetBadData
     filename = Parameter(GetBadData().filename)
@@ -111,7 +111,7 @@ class DataEncoder(Task):
     """
 
     # Path to encoded file
-    ENCODED_PATH = os.path.join('data', 'encoded\\')
+    ENCODED_PATH = os.path.join('data', 'encoded/')
 
     # Inherit filename from GetBadData
     filename = Parameter(GetBadData().filename)
@@ -165,7 +165,7 @@ class DataVisualizer(Task):
     """
 
     # Path to visual figure
-    VISUAL_PATH = os.path.join('data', 'visualized\\')
+    VISUAL_PATH = os.path.join('data', 'visualized/')
 
     # Figure file name parameter
     figure_name = Parameter(default='figure.pdf')
