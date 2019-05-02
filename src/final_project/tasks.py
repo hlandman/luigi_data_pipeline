@@ -48,9 +48,6 @@ class DataCleaner(Task):
     # Parameter for having indexes - False will return NotImplementedError
     has_column_names = BoolParameter(default=True)
 
-    # Type of source, Local or S3
-    source_type = Parameter(default="Local")
-
     # Parse Dates - True if there is a date column to parse
     date_data = BoolParameter()
     # Name of date column"
@@ -85,14 +82,14 @@ class DataCleaner(Task):
 
             # Fill or drop NaN based on parameter
             if self.drop_nan == "rows":
-                df.dropna()
+                df = df.dropna()
             elif self.drop_nan == "columns":
-                df.dropna(axis=1)
+                df = df.dropna(axis=1)
             elif self.drop_nan == "both":
-                df.dropna()
-                df.dropna(axis=1)
+                df = df.dropna()
+                df = df.dropna(axis=1)
             else:
-                df.fillna(self.na_filler)
+                df = df.fillna(value=self.na_filler)
 
             # Output to CSV file in "Cleaned" folder
             outdir = self.CLEAN_PATH
