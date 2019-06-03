@@ -180,4 +180,3 @@ encoder | False | boolean | are we encoding data?
 func | "lm" | lm," "cat," "facet," or "pair" | indicate use of Seaborn's lmplot, catplot, FacetGrid or PairGrid
 kind | "point" | catplot: “point”, “bar”, “strip”, “swarm”, “box”, “violin”, or “boxen.” FacetGrid or PairGrid: "scatter," "point," "hist," "bar" or "dist." | indicate which "kind" of Seaborn plot
 xyvars | {"x": "x", "y": "y"} | Dict {"x": <x>, "y": <y>, "facet": <facet>} | specify x and y variables to plot (and facet variable for FacetGrid)
-=======
