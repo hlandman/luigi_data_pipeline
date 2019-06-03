@@ -49,7 +49,7 @@ _Luigi Parameter, default='clean_file.csv'_
 Use to change name of output file.  
     
 Example call:
-```python
+```bash
 $ luigi --module final_project.tasks GetBadData --local-scheduler --filename <new_filename>
 ```
 
@@ -81,7 +81,7 @@ _Luigi Parameter, default=' '_
 Use to indicate fill value for fillna() call
 
 Example call:
-```python
+```bash
 $ luigi --module final_project.tasks DataCleaner --local-scheduler --date-data --date-column Date --na-filler 0
 ```
 
@@ -96,7 +96,7 @@ _Luigi DictParameter, default={"cat": "none", "dum": "none"}_
 Use to tell DataEncoder which column to use as categorical and which as dummy.  
 
 Example call:
-```python
+```bash
 $ luigi --module final_project.tasks DataEncoder --local-scheduler --cols '{"cat": "categorical_col", "dum": "dummy_col"}'
 ```
 
@@ -133,17 +133,17 @@ Use to specify x and y variables to chart, and facet variable ("facet": "<facet-
 
 Example Calls:  
 * catplot with kind "strip"
-```python
+```bash
 $ luigi --module final_project.tasks DataVisualizer --local-scheduler --func cat --kind strip --xyvars '{"x": "x_variable", "y":"y_variable"}'
 ```
 
 * lmplot with encoding
-```python
+```bash
 $ luigi --module final_project.tasks DataVisualizer --local-scheduler --func lm --xyvars '{"x": "x_variable", "y":"y_variable"}' --encoder --DataEncoder-cols '{"cat": "categorical_col"}'
 ```
 
 * FacetGrid with kind "scatter"
-```python
+```bash
 $ luigi --module final_project.tasks DataVisualizer --local-scheduler --func facet --kind scatter --xyvars '{"x": "x_variable", "y":"y_variable", "facet":"facet_variable"}'
 ```  
 
@@ -181,6 +181,3 @@ func | "lm" | lm," "cat," "facet," or "pair" | indicate use of Seaborn's lmplot,
 kind | "point" | catplot: “point”, “bar”, “strip”, “swarm”, “box”, “violin”, or “boxen.” FacetGrid or PairGrid: "scatter," "point," "hist," "bar" or "dist." | indicate which "kind" of Seaborn plot
 xyvars | {"x": "x", "y": "y"} | Dict {"x": <x>, "y": <y>, "facet": <facet>} | specify x and y variables to plot (and facet variable for FacetGrid)
 =======
-# luigi_data_pipeline
-Luigi Workflow for Customizable Data Cleaning, Encoding and Visualization
->>>>>>> origin/master
