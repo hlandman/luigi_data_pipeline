@@ -1,5 +1,3 @@
-[![Build Status](https://travis-ci.com/csci-e-29/2019sp-final-project-panic42station.svg?token=Z1zVMfxDc9bFJyjazoVH&branch=master)](https://travis-ci.com/csci-e-29/2019sp-final-project-panic42station)
-
 # Luigi Workflow for Customizable Data Cleaning, Encoding and Visualization
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
