@@ -17,7 +17,7 @@ class GetBadData(ExternalTask):
         filename: Name of output file as string
     """
     # Directory for local file
-    DATA_ROOT = 'data/unclean/'
+    DATA_ROOT = 'data\\unclean\\'
 
     # Unclean file's local name as luigi parameter
     filename = Parameter(default='clean_file.csv')
@@ -39,7 +39,7 @@ class DataCleaner(Task):
     """
 
     # Folder for clean data
-    CLEAN_PATH = os.path.join('data', 'cleaned/')
+    CLEAN_PATH = os.path.join('data', 'cleaned\\')
 
     # Inherits filename from GetBadData
     filename = Parameter(GetBadData().filename)
@@ -107,17 +107,17 @@ class DataEncoder(Task):
     Functions if encoder Param is specified in DataVisualizer.
     Luigi Parameter (required):
         cols: In command line call, need to specify as dict which columns to encode.
-            Example: --cols '{"cat": "some_categorical", "dum": "some_dummy"}'
+            Example: --cols '{"cat": "some_categorical", "bin": "some_binary"}'
     """
 
     # Path to encoded file
-    ENCODED_PATH = os.path.join('data', 'encoded/')
+    ENCODED_PATH = os.path.join('data', 'encoded\\')
 
     # Inherit filename from GetBadData
     filename = Parameter(GetBadData().filename)
 
     # DictParameter for which columns to encode
-    cols = DictParameter(default={"cat": "none", "dum": "none"})
+    cols = DictParameter(default={"cat": "none", "bin": "none"})
 
     def requires(self):
         return DataCleaner()
@@ -136,10 +136,10 @@ class DataEncoder(Task):
                 l_encoder = preprocessing.LabelEncoder()
                 df[self.cols["cat"]] = l_encoder.fit_transform(df[self.cols["cat"]])
 
-        # Encode Dummy Variables
+        # Encode Binary Variables
         if "dum" in self.cols:
-            if self.cols["dum"] != "none":
-                df[self.cols["dum"]] = pd.get_dummies(df[self.cols["dum"]])
+            if self.cols["bin"] != "none":
+                df[self.cols["bin"]] = pd.get_dummies(df[self.cols["bin"]])
 
         # Output to CSV file in "encoded" folder
         outdir = self.ENCODED_PATH
@@ -165,7 +165,7 @@ class DataVisualizer(Task):
     """
 
     # Path to visual figure
-    VISUAL_PATH = os.path.join('data', 'visualized/')
+    VISUAL_PATH = os.path.join('data', 'visualized\\')
 
     # Figure file name parameter
     figure_name = Parameter(default='figure.pdf')
