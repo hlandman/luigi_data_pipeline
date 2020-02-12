@@ -14,13 +14,6 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-## Initial Setup
-
-### Environment
-Pipenv install packages that we will use:
-```bash
-$ pipenv install luigi, pandas, numpy, seaborn
-```
 
 ### Getting Data
 
