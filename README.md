@@ -4,7 +4,6 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
-- [Initial Setup](#initial-setup)
 - [Functionality](#functionality)
   - [GetBadData](#getbaddataexternaltask)
   - [DataCleaner](#datacleanertask)
@@ -13,12 +12,6 @@
 - [Parameter Table](#parameter-table)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
-
-### Getting Data
-
-Store a csv file in a folder called "data/unclean/" at the top of your repository.
-
 
 
 ***
