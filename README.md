@@ -16,10 +16,6 @@
 
 ## Initial Setup
 
-### Cookiecutter
-Begin with your cookiecutter template as usual, and manaully merge and link
-to this repo as origin.
-
 ### Environment
 Pipenv install packages that we will use:
 ```bash
